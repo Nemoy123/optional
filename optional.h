@@ -28,19 +28,19 @@ public:
     ~Optional();
 
     bool HasValue() const;
-
     // Операторы * и -> не должны делать никаких проверок на пустоту Optional.
     // Эти проверки остаются на совести программиста
     T& operator*();
     const T& operator*() const;
     T* operator->();
     const T* operator->() const;
-
     // Метод Value() генерирует исключение BadOptionalAccess, если Optional пуст
     T& Value();
     const T& Value() const;
-
     void Reset();
+
+    template <typename... VT>
+    void Emplace(VT&&... vt);
 
 private:
     // alignas нужен для правильного выравнивания блока памяти
@@ -198,4 +198,14 @@ const T& Optional<T>::Value() const {
     else {
         throw BadOptionalAccess();
     }
+}
+
+template <typename T>
+template <typename... VT>
+void Optional<T>::Emplace(VT&&... vt) {
+    if (HasValue()) { Reset();}
+    
+        //*this=std::move(Optional<T>({(std::forward<VT>(vt))...}));
+        ptr_ = new(&data_[0]) T(std::forward<VT>(vt)...);
+        is_initialized_ = true; 
 }
