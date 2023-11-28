@@ -30,17 +30,20 @@ public:
     bool HasValue() const;
     // Операторы * и -> не должны делать никаких проверок на пустоту Optional.
     // Эти проверки остаются на совести программиста
-    T& operator*();
-    const T& operator*() const;
+    T& operator*()&;
+    const T& operator*() const&;
     T* operator->();
     const T* operator->() const;
     // Метод Value() генерирует исключение BadOptionalAccess, если Optional пуст
-    T& Value();
-    const T& Value() const;
+    T& Value()&;
+    const T& Value() const&;
     void Reset();
 
     template <typename... VT>
     void Emplace(VT&&... vt);
+
+    T&& operator*() &&;
+    T&& Value() &&;
 
 private:
     // alignas нужен для правильного выравнивания блока памяти
@@ -157,13 +160,21 @@ bool Optional<T>::HasValue() const {
 // Операторы * и -> не должны делать никаких проверок на пустоту Optional.
 // Эти проверки остаются на совести программиста
 template <typename T>
-T& Optional<T>::operator*() {
+T& Optional<T>::operator*()& {
     return *ptr_;
 }
+
 template <typename T>
-const T& Optional<T>::operator*() const{
+const T& Optional<T>::operator*() const&{
     return *ptr_;
 }
+
+template <typename T>
+T&& Optional<T>::operator*() && {
+    return std::move(*ptr_);
+}
+
+
 template <typename T>
 T* Optional<T>::operator->(){
     return ptr_;
@@ -186,14 +197,23 @@ void Optional<T>::Reset() {
 
 // Метод Value() генерирует исключение BadOptionalAccess, если Optional пуст
 template <typename T>
-T& Optional<T>::Value(){
+T& Optional<T>::Value()&{
     if (ptr_ != nullptr && is_initialized_)  {return *ptr_;}
     else {
         throw BadOptionalAccess();
     }
 }
+
 template <typename T>
-const T& Optional<T>::Value() const {
+T&& Optional<T>::Value() && {
+    if (ptr_ != nullptr && is_initialized_)  {return std::move(*ptr_);}
+    else {
+        throw BadOptionalAccess();
+    }
+}
+
+template <typename T>
+const T& Optional<T>::Value() const& {
     if (ptr_ != nullptr && is_initialized_)  {return *ptr_;}
     else {
         throw BadOptionalAccess();
@@ -209,3 +229,4 @@ void Optional<T>::Emplace(VT&&... vt) {
         ptr_ = new(&data_[0]) T(std::forward<VT>(vt)...);
         is_initialized_ = true; 
 }
+
